@@ -94,6 +94,7 @@ class CategoryViewController: UITableViewController {
         // Used as a global variable that selects the indexPath that was selected in the table.
         if let indexPath = tableView.indexPathForSelectedRow {
             
+            // Sets 'selectedCategory' in the 'ToDoListViewController' to the current category being selected.
             destinationVC.selectedCategory = categoryArray[indexPath.row]
             
         }
