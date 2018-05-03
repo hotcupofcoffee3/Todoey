@@ -7,19 +7,30 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
     
-    var categoryArray = [Category]()
+    // Initialize new 'Realm'
+    let realm = try! Realm()
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+    
+    // Have to change the type of 'categoryArray' to be of type 'Results', as declared in Realm.
+    // Therefore, we renamed it to 'categories' and changed the type.
+    // This can, however, be accessed using subscripts with indices.
+    // We use it as an optional so that if there is nothing in 'categories', it doesn't crash our app.
+    // var categoryArray = [Category]()
+    
+    var categories: Results<Category>?
+    
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.loadData()
-
+    
     }
     
     
@@ -40,12 +51,10 @@ class CategoryViewController: UITableViewController {
         
         alert.addAction(UIAlertAction(title: "Add", style: .default, handler: { (action) in
             
-            let newCategory = Category(context: self.context)
+            let newCategory = Category()
             newCategory.name = newCategoryTextFieldFromAlertTextField.text!
             
-            self.categoryArray.append(newCategory)
-            
-            self.saveData()
+            self.saveData(category: newCategory)
 
         }))
         
@@ -59,14 +68,17 @@ class CategoryViewController: UITableViewController {
     // MARK: - TableView Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categoryArray.count
+        
+        // If the 'categories' results from the 'Realm' database is empty, or nil, then the return is 1 row.
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
-        cell.textLabel?.text = categoryArray[indexPath.row].name
+        // If the 'categories' results from the 'Realm' database is empty, or nil, then the text for the 1 row that was created using our nil coalescing operator has the text 'No categories added yet'.
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No categories added yet"
         
         return cell
         
@@ -95,7 +107,7 @@ class CategoryViewController: UITableViewController {
         if let indexPath = tableView.indexPathForSelectedRow {
             
             // Sets 'selectedCategory' in the 'ToDoListViewController' to the current category being selected.
-            destinationVC.selectedCategory = categoryArray[indexPath.row]
+            destinationVC.selectedCategory = categories?[indexPath.row]
             
         }
         
@@ -105,11 +117,13 @@ class CategoryViewController: UITableViewController {
     
     // Mark: - Data Manipulation Methods
     
-    func saveData() {
+    func saveData(category: Category) {
         
         do {
             
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
             
         } catch {
             
@@ -123,17 +137,10 @@ class CategoryViewController: UITableViewController {
     
     func loadData() {
         
-        let request: NSFetchRequest<Category> = Category.fetchRequest()
-        
-        do {
-            
-            categoryArray = try context.fetch(request)
-            
-        } catch {
-            
-            print("Error that we got: \(error)")
-            
-        }
+        // Loads all of the objects that are in the 'Category' object.
+        // This returns a 'Result' type, that isn't the same as an array, as in CoreData.
+        // Therefore, it has to be converted in order to be used in our 'categoryArray' variable.
+        categories = realm.objects(Category.self)
         
         tableView.reloadData()
         
