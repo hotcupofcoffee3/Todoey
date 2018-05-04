@@ -29,11 +29,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("Error initializing realm: \(error)")
             
         }
-        
-        
-        
-        
-        
+
         return true
     }
 

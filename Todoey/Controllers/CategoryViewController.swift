@@ -8,8 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
     // Initialize new 'Realm'
     let realm = try! Realm()
@@ -32,7 +33,6 @@ class CategoryViewController: UITableViewController {
         self.loadData()
     
     }
-    
     
     // MARK: - Add New Categories
     
@@ -75,10 +75,30 @@ class CategoryViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        // Taps into Superclass cell in 'SwipeTableViewController' where the function is initially customized that we inherit from.
+        // This initializes a cell based on the information in the (), with 'tableView' being the default table view name in this VC, and the 'indexPath' that is used here, and passes it to this instance of 'cell' using the superview's 'cellForRowAt' function.
+        
+        // *** In other words, the current VC's 'tableView' and 'indexPath' are passed to the identical function in the super class and uses its information (The custom cell dequeued and cast as the Swipe cell, and setting the 'cell.delegate' as the 'SwipeTableViewController') to set the parent's information as the 'cell' information for this particular cell.
+        
+        // We can then add the text that we want below to this cell.
+        
+        
+        // **************
+        
+        // Also, make sure to change the class of the cell in the Main.storyboard to the class and module that match the 'Swipe' class and module necessary. Otherwise, it'll try to cast a 'UITableViewCell' as a 'SwipeTableViewCell', and the app will crash.
+        
+        // **************
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         // If the 'categories' results from the 'Realm' database is empty, or nil, then the text for the 1 row that was created using our nil coalescing operator has the text 'No categories added yet'.
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No categories added yet"
+        
+        let categoryBackground = UIColor(hexString: (categories?[indexPath.row].bgColor)!)!
+        
+        cell.backgroundColor = categoryBackground
+        
+        cell.textLabel?.textColor = ContrastColorOf(categoryBackground, returnFlat: true)
         
         return cell
         
@@ -147,13 +167,29 @@ class CategoryViewController: UITableViewController {
     }
     
     
+    // This taps into the function in the 'SwipeTableViewController', and overrides it when it is called. This is almost like a delegate, because it is initialized and run in the superview, but executed in this VC.
+    override func updateModel(at indexPath: IndexPath) {
+        
+        if let category = self.categories?[indexPath.row] {
+            do {
+
+                try self.realm.write {
+                    self.realm.delete(category)
+                }
+
+            } catch {
+
+                print("Error deleting item: \(error)")
+
+            }
+
+        }
+        
+    }
+    
+    
 
 }
-
-
-
-
-
 
 
 

@@ -8,14 +8,16 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class ToDoListViewController: UITableViewController {
+class ToDoListViewController: SwipeTableViewController {
     
     // No need to create an @IBOutlet for the table view when it is a UITableViewController
     // The default name for the outlet is "tableView"
     
     var items: Results<Item>?
     let realm = try! Realm()
+    @IBOutlet weak var searchBar: UISearchBar!
     
     var selectedCategory: Category? {
         
@@ -29,7 +31,43 @@ class ToDoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        
+
+        
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        
+        guard let colourHex = selectedCategory?.bgColor else { return }
+        
+        updateNavBar(withHexCode: colourHex)
+        
+        title = selectedCategory?.name
+        
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        
+        updateNavBar(withHexCode: "466D6F")
+        
+    }
+    
+    
+    // MARK: - Nav Bar Setup Methods
+    
+    func updateNavBar(withHexCode colorHexCode: String) {
+        
+        guard let navBar = navigationController?.navigationBar else { return }
+        
+        guard let navBarColour = UIColor(hexString: colorHexCode) else { return }
+        
+        navBar.barTintColor = navBarColour
+        
+        navBar.tintColor = ContrastColorOf(navBarColour, returnFlat: true)
+        
+        navBar.largeTitleTextAttributes = [NSAttributedStringKey.foregroundColor: ContrastColorOf(navBarColour, returnFlat: true)]
+        
+        searchBar.barTintColor = navBarColour
         
     }
     
@@ -44,16 +82,23 @@ class ToDoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
 
         if let item = items?[indexPath.row] {
             
             cell.textLabel?.text = item.title
             
-            
             // Ternary operator ==>
             // value = condition ? valueIfTrue : valueIfFalse
             cell.accessoryType = item.done ? .checkmark : .none
+            
+            let colourPercent = (CGFloat(indexPath.row) / CGFloat((items?.count)!)) / 2
+            let categoryColor = selectedCategory?.bgColor
+            let categoryAsUIColor = UIColor(hexString: categoryColor!)!
+            let itemBackgroundColour = categoryAsUIColor.darken(byPercentage: colourPercent)!
+            
+            cell.backgroundColor = itemBackgroundColour
+            cell.textLabel?.textColor = ContrastColorOf(itemBackgroundColour, returnFlat: true)
             
         } else {
             
@@ -92,27 +137,23 @@ class ToDoListViewController: UITableViewController {
         
     }
     
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            
-            if let item = items?[indexPath.row] {
-                do {
-                    
-                    try realm.write {
-                        realm.delete(item)
-                    }
-                    
-                } catch {
-                    
-                    print("Error deleting item: \(error)")
-                    
+    override func updateModel(at indexPath: IndexPath) {
+        
+        if let item = items?[indexPath.row] {
+            do {
+                
+                try realm.write {
+                    realm.delete(item)
                 }
+                
+            } catch {
+                
+                print("Error deleting item: \(error)")
                 
             }
             
-            tableView.reloadData()
-            
         }
+
     }
     
     func loadData() {
@@ -156,7 +197,6 @@ class ToDoListViewController: UITableViewController {
                     print("Error saving new items: \(error)")
                     
                 }
-                
                 
             }
             
